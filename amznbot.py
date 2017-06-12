@@ -163,10 +163,10 @@ class AmznBot(object):
             # format msg
             if type(results) is AmazonSearch:
                 for product in results:
-                    items[product.asin] = '$0.00'
+                    items[product.asin] = product.formatted_price
 
             else:
-                items[results.asin] = '$0.00'
+                items[results.asin] = results.formatted_price
 
         # leave
         return items
