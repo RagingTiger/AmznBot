@@ -88,10 +88,10 @@ class AmznBot(object):
         if type(results) is AmazonSearch or list:
             for product in results:
                 print '\n{0}: \'{1}\''.format(product.formatted_price,
-                                            product.title)
+                                              product.title)
         else:
             print '\n{0}: \'{1}\''.format(results.formatted_price,
-                                        product.title)
+                                          product.title)
 
     def report(self, items=None, search=None, period=1200, debug=None):
         # check period
