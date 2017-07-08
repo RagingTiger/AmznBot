@@ -85,13 +85,13 @@ class AmznBot(object):
         results = self._get_items()
 
         # check if AmazonProduct object
-        if type(results) is AmazonSearch:
+        if type(results) is AmazonSearch or list:
             for product in results:
-                print '{0}: \'{1}\''.format(product.formatted_price,
+                print '\n{0}: \'{1}\''.format(product.formatted_price,
                                             product.title)
         else:
-            print '{0}: \'{1}\''.format(results.formatted_price,
-                                        results.title)
+            print '\n{0}: \'{1}\''.format(results.formatted_price,
+                                        product.title)
 
     def report(self, items=None, search=None, period=1200, debug=None):
         # check period
@@ -121,19 +121,21 @@ class AmznBot(object):
         # report
         while True:
             try:
-                # post to slack
-                self._post_slack(reporters)
-
                 # sleep period minutes
                 if debug:
-                    print 'Sleeping {0} minutes'.format(sleep_time/60.0)
+                    print 'Sleeping {0} seconds'.format(sleep_time)
+                    self.items()
+                else:
+                    # post to slack
+                    self._post_slack(reporters)
+
                 time.sleep(sleep_time)
 
             except KeyboardInterrupt:
                 sys.exit('\nShutting Down :)')
 
     def _format_msg(self, product):
-        return '`{0}` {1} | <{2}|link>'.format(
+        return '`{0}` {1} | <{2}|link>\n'.format(
                                product.formatted_price,
                                product.title,
                                product.offer_url
@@ -165,7 +167,7 @@ class AmznBot(object):
             results = reporter()
 
             # format msg
-            if type(results) is AmazonSearch:
+            if type(results) is AmazonSearch or list:
                 for product in results:
                     items[product.asin] = product.formatted_price
 
@@ -185,7 +187,7 @@ class AmznBot(object):
             slk_msg = ''
 
             # format msg
-            if type(results) is AmazonSearch:
+            if type(results) is AmazonSearch or list:
                 for product in results:
                     if self._prod[product.asin] != product.formatted_price:
                         # create string for slack message
