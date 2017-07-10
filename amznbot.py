@@ -15,6 +15,7 @@ Usage:
 import os
 import sys
 import time
+import math
 import slackclient
 from amazon.api import AmazonAPI, AmazonSearch
 
@@ -43,6 +44,9 @@ def get_toke(tokens='.tokens'):
 
 
 def get_config(configfile='.config'):
+    """
+    NOTE: Refactor to JSON
+    """
     # config dict
     configdict = {}
 
@@ -151,6 +155,23 @@ class AmznBot(object):
                      \'searchindex\'')
 
     def _get_items(self):
+        # # get number of groups of 10 or less
+        # itemids = self._cfg['itemid']
+        # num_grp = int(math.ceil(len(itemids)))
+        #
+        # # now create list of item groups for 10 items or less
+        # item_ls = []
+        # for i in range(num_grp):
+        #     item_ls += itemids[i*10:(i+1)*10]
+        #
+        # # now get results
+        # results = []
+        # for itemid_grp in item_ls:
+        #     results += self._amazon.lookup(ItemId=itemid_grp])
+        #     time.sleep(1)
+        #
+        # return results
+
         # check items
         try:
             return self._amazon.lookup(ItemId=self._cfg['itemid'])
