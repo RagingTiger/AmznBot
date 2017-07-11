@@ -16,6 +16,7 @@ import os
 import sys
 import time
 import math
+import json
 import slackclient
 from amazon.api import AmazonAPI, AmazonSearch
 
@@ -43,18 +44,18 @@ def get_toke(tokens='.tokens'):
     return tdict
 
 
-def get_config(configfile='.config'):
+def get_config(configfile='.config.json'):
     """
-    NOTE: Refactor to JSON
+    Read in JSON file, extract configuration values, and return dictionary
     """
-    # config dict
-    configdict = {}
-
-    # open
-    with open(configfile, 'r') as config:
-        for line in config:
-            key, val = line.split('=')
-            configdict[key] = val.strip()
+    # try reading
+    try:
+        with open(configfile, 'r') as config:
+            configdict = json.loads(config.read())
+    except IOError:
+        sys.exit('File {0} not found\n'.format(configfile))
+    except ValueError:
+        sys.exit('Format error in filter config file\n')
 
     # return dict
     return configdict
@@ -90,9 +91,10 @@ class AmznBot(object):
 
         # check if AmazonProduct object
         if type(results) is AmazonSearch or list:
-            for product in results:
-                print '\n{0}: \'{1}\''.format(product.formatted_price,
-                                              product.title)
+            for i, product in enumerate(results):
+                print '\n{2}: {0} \'{1}\' {3}'.format(product.formatted_price,
+                                                      product.title, i,
+                                                      product.asin)
         else:
             print '\n{0}: \'{1}\''.format(results.formatted_price,
                                           product.title)
@@ -155,28 +157,27 @@ class AmznBot(object):
                      \'searchindex\'')
 
     def _get_items(self):
-        # # get number of groups of 10 or less
-        # itemids = self._cfg['itemid']
-        # num_grp = int(math.ceil(len(itemids)))
-        #
-        # # now create list of item groups for 10 items or less
-        # item_ls = []
-        # for i in range(num_grp):
-        #     item_ls += itemids[i*10:(i+1)*10]
-        #
-        # # now get results
-        # results = []
-        # for itemid_grp in item_ls:
-        #     results += self._amazon.lookup(ItemId=itemid_grp])
-        #     time.sleep(1)
-        #
-        # return results
-
         # check items
         try:
-            return self._amazon.lookup(ItemId=self._cfg['itemid'])
+            itemids = self._cfg['itemid']
         except KeyError:
             sys.exit('Make sure config file has \'itemid\'')
+
+        # get number of groups of 10 or less
+        num_grp = int(math.ceil(len(itemids)/10.0))
+
+        # now create list of item groups for 10 items or less
+        item_ls = []
+        for i in range(num_grp):
+            item_ls.append(itemids[i*10:(i+1)*10])
+
+        # now get results
+        results = []
+        for itemid_grp in item_ls:
+            item_id_str = ','.join(itemid_grp)
+            results += self._amazon.lookup(ItemId=item_id_str)
+
+        return results
 
     def _init_prod_dict(self, reporters):
         # local dictionary
