@@ -21,6 +21,7 @@ import slackclient
 from amazon.api import AmazonAPI, AmazonSearch
 
 # globals
+STARTUP_MSG = '*AMZNBOT RESTARTING ... INITIAL PRICES @ {0}:*\n'
 TOKENS = ['AWSAccessKeyId', 'AWSSecretKey', 'AWSAssociateTag',
           'SLACK_API_TOKEN']
 
@@ -65,6 +66,9 @@ class AmznBot(object):
     def __init__(self):
         # create product dictionary
         self._prod = None
+
+        # create slack instance pointer
+        self._slk_instance = None
 
         # get config
         self._cfg = get_config()
@@ -121,6 +125,18 @@ class AmznBot(object):
             # append search reporter
             reporters.append(self._get_search)
 
+        # get slack instance
+        try:
+            # get channel
+            self._slk_chnl = self._cfg['channel']
+
+            # get slack instance
+            slk_toke = self._tokens['SLACK_API_TOKEN']
+            self._slk_instance = slackclient.SlackClient(slk_toke)
+
+        except KeyError:
+            sys.exit('Check Slack token and/or config file :(')
+
         # initialize product dictionary
         self._prod = self._init_prod_dict(reporters)
 
@@ -133,12 +149,23 @@ class AmznBot(object):
                     self.items()
                 else:
                     # post to slack
-                    self._post_slack(reporters)
+                    self._update_slack(reporters)
 
                 time.sleep(sleep_time)
 
             except KeyboardInterrupt:
                 sys.exit('\nShutting Down :)')
+
+    def _post_slack(self, msg):
+        # send message
+        try:
+            self._slk_instance.api_call('chat.postMessage',
+                                        as_user='true',
+                                        channel='#{0}'.format(self._slk_chnl),
+                                        text=msg
+                                        )
+        except AttributeError:
+            sys.exit('Slack instance was not initialized')
 
     def _format_msg(self, product):
         return '`{0}` {1} | <{2}|link>\n'.format(
@@ -174,8 +201,18 @@ class AmznBot(object):
         # now get results
         results = []
         for itemid_grp in item_ls:
+            # format for request
             item_id_str = ','.join(itemid_grp)
-            results += self._amazon.lookup(ItemId=item_id_str)
+
+            # get products
+            product = self._amazon.lookup(ItemId=item_id_str)
+
+            # make sure its a list
+            if type(product) is not list:
+                product = list(product)
+
+            # add to results
+            results += product
 
         return results
 
@@ -188,13 +225,16 @@ class AmznBot(object):
             # get results
             results = reporter()
 
-            # format msg
-            if type(results) is AmazonSearch or list:
-                for product in results:
-                    items[product.asin] = product.formatted_price
+            # get iniital prices and format start up message
+            starting_msg = STARTUP_MSG.format(time.asctime())
+            for product in results:
+                # get initial price
+                items[product.asin] = product.formatted_price
+                # create string for initial price
+                starting_msg += self._format_msg(product)
 
-            else:
-                items[results.asin] = results.formatted_price
+        # post to slack
+        self._post_slack(starting_msg)
 
         # leave
         return items
@@ -228,25 +268,12 @@ class AmznBot(object):
 
             yield slk_msg
 
-    def _post_slack(self, reps):
+    def _update_slack(self, reps):
         # get updates
         updates = [msg for msg in self._gen_update(reps) if msg is not '']
 
-        # any updates
+        # any updates, post to slack
         if any(updates):
-            # get slack object
-            try:
-                # get channel and token
-                slk_chnl = self._cfg['channel']
-                slk_toke = self._tokens['SLACK_API_TOKEN']
-
-                # get slack instance
-                slk_instance = slackclient.SlackClient(slk_toke)
-
-            except KeyError:
-                sys.exit('Check Slack token and/or config file :(')
-
-            # post updates to slack
             for slk_msg in updates:
                 # create msg header
                 hdr = 'Update: {0}'.format(time.asctime())
@@ -254,11 +281,7 @@ class AmznBot(object):
                                                       slk_msg
                                                       )
                 # send message
-                slk_instance.api_call('chat.postMessage',
-                                      as_user='true',
-                                      channel='#{0}'.format(slk_chnl),
-                                      text=slk_msg
-                                      )
+                self._post_slack(slk_msg)
 
 
 # executable
