@@ -168,11 +168,13 @@ class AmznBot(object):
             sys.exit('Slack instance was not initialized')
 
     def _format_msg(self, product):
-        return '`{0}` {1} | <{2}|link>\n'.format(
-                               product.formatted_price,
-                               product.title,
-                               product.offer_url
-                               )
+        return '*{0}*: `{1}` {2} | {3} | <{4}|link>\n'.format(
+                                                   product.asin,
+                                                   product.formatted_price,
+                                                   product.title,
+                                                   product.availability,
+                                                   product.offer_url,
+                                                   )
 
     def _get_search(self):
         # search items
