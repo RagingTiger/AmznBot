@@ -93,15 +93,9 @@ class AmznBot(object):
         # get results
         results = self._get_items()
 
-        # check if AmazonProduct object
-        if type(results) is AmazonSearch or list:
-            for i, product in enumerate(results):
-                print '\n{2}: {0} \'{1}\' {3}'.format(product.formatted_price,
-                                                      product.title, i,
-                                                      product.asin)
-        else:
-            print '\n{0}: \'{1}\''.format(results.formatted_price,
-                                          product.title)
+        # iterate over resulsts
+        for i, product in enumerate(results):
+            print '{0} - {1}'.format(i, self._format_msg(product))
 
     def report(self, items=None, search=None, period=1200, debug=None):
         # check period
@@ -211,7 +205,7 @@ class AmznBot(object):
 
             # make sure its a list
             if type(product) is not list:
-                product = list(product)
+                product = [product]
 
             # add to results
             results += product
