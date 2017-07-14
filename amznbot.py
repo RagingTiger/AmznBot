@@ -22,6 +22,9 @@ from amazon.api import AmazonAPI, AmazonSearch
 
 # globals
 STARTUP_MSG = '*AMZNBOT RESTARTING ... INITIAL PRICES @ {0}:*\n'
+PRODUCT_MSG = ('*{0}*: `{1}` {2} | SalesRank: {3} | Availability: {4} '
+               '|<{5}|link>\n'
+               )
 TOKENS = ['AWSAccessKeyId', 'AWSSecretKey', 'AWSAssociateTag',
           'SLACK_API_TOKEN']
 
@@ -162,13 +165,14 @@ class AmznBot(object):
             sys.exit('Slack instance was not initialized')
 
     def _format_msg(self, product):
-        return '*{0}*: `{1}` {2} | {3} | <{4}|link>\n'.format(
-                                                   product.asin,
-                                                   product.formatted_price,
-                                                   product.title,
-                                                   product.availability,
-                                                   product.offer_url,
-                                                   )
+        return PRODUCT_MSG.format(
+                                   product.asin,
+                                   product.formatted_price,
+                                   product.title,
+                                   product.sales_rank,
+                                   product.availability,
+                                   product.offer_url,
+                                   )
 
     def _get_search(self):
         # search items
